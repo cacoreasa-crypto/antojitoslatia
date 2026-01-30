@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #F9C80E;
+  --color-secondary: #EA3546;
+  --color-accent: #007BFF;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --primary: #F9C80E;
+  --primary-foreground: #000000;
+  --secondary: #EA3546;
+  --secondary-foreground: #ffffff;
+  --accent: #007BFF;
+  --accent-foreground: #ffffff;
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
+  --card: #ffffff;
+  --card-foreground: #171717;
+  --border: #e5e7eb;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --primary: #F9C80E;
+  --primary-foreground: #000000;
+  --secondary: #EA3546;
+  --secondary-foreground: #ffffff;
+  --accent: #007BFF;
+  --accent-foreground: #ffffff;
+  --muted: #1a1a1a;
+  --muted-foreground: #a1a1aa;
+  --card: #121212;
+  --card-foreground: #ededed;
+  --border: #262626;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-[var(--primary)] text-[var(--primary-foreground)] px-4 py-2 rounded-lg font-semibold transition-all hover:opacity-90 active:scale-95 disabled:opacity-50 disabled:pointer-events-none shadow-lg shadow-yellow-500/20;
+  }
+
+  .btn-secondary {
+    @apply bg-[var(--secondary)] text-[var(--secondary-foreground)] px-4 py-2 rounded-lg font-semibold transition-all hover:opacity-90 active:scale-95 disabled:opacity-50 disabled:pointer-events-none shadow-lg shadow-red-500/20;
+  }
+
+  .btn-accent {
+    @apply bg-[var(--accent)] text-[var(--accent-foreground)] px-4 py-2 rounded-lg font-semibold transition-all hover:opacity-90 active:scale-95 disabled:opacity-50 disabled:pointer-events-none shadow-lg shadow-blue-500/20;
+  }
+
+  .card-premium {
+    @apply bg-[var(--card)] border border-[var(--border)] rounded-xl p-6 shadow-xl backdrop-blur-sm transition-all hover:border-[var(--primary)]/50;
+  }
+
+  .input-premium {
+    @apply bg-[var(--muted)] border border-[var(--border)] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] transition-all;
+  }
+}
