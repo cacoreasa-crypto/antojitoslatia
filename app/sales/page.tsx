@@ -51,9 +51,35 @@ export default function SalesPage() {
         XLSX.writeFile(wb, `Reporte-Ventas-${new Date().toISOString().split('T')[0]}.xlsx`);
     };
 
-    const filteredSales = sales.filter(s =>
-        s.invoiceId.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const [timeRange, setTimeRange] = useState("all");
+
+    const filteredSales = sales.filter(s => {
+        const matchesSearch = s.invoiceId.toLowerCase().includes(searchTerm.toLowerCase());
+
+        if (!matchesSearch) return false;
+
+        if (timeRange === "all") return true;
+
+        const date = s.date.toDate ? s.date.toDate() : new Date(s.date);
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+
+        if (timeRange === "today") return date >= now;
+        if (timeRange === "week") {
+            const startOfWeek = new Date(now);
+            startOfWeek.setDate(now.getDate() - now.getDay());
+            return date >= startOfWeek;
+        }
+        if (timeRange === "month") {
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            return date >= startOfMonth;
+        }
+        if (timeRange === "year") {
+            const startOfYear = new Date(now.getFullYear(), 0, 1);
+            return date >= startOfYear;
+        }
+        return true;
+    });
 
     const totalSales = sales.reduce((acc, s) => acc + s.amount, 0);
 
@@ -94,15 +120,28 @@ export default function SalesPage() {
                 </div>
             </div>
 
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
-                <input
-                    type="text"
-                    placeholder="Buscar por ID de factura..."
-                    className="w-full pl-10 input-premium"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
+            <div className="flex flex-col md:flex-row gap-4">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
+                    <input
+                        type="text"
+                        placeholder="Buscar por ID de factura..."
+                        className="w-full pl-10 input-premium"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                <select
+                    className="input-premium w-full md:w-48"
+                    value={timeRange}
+                    onChange={(e) => setTimeRange(e.target.value)}
+                >
+                    <option value="all">Todo el historial</option>
+                    <option value="today">Hoy</option>
+                    <option value="week">Esta semana</option>
+                    <option value="month">Este mes</option>
+                    <option value="year">Este año</option>
+                </select>
             </div>
 
             <div className="card-premium overflow-hidden !p-0">

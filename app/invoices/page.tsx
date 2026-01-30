@@ -89,9 +89,35 @@ export default function InvoicesPage() {
         }
     };
 
-    const filteredInvoices = invoices.filter(inv =>
-        inv.customerName.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const [timeRange, setTimeRange] = useState("all");
+
+    const filteredInvoices = invoices.filter(inv => {
+        const matchesSearch = inv.customerName.toLowerCase().includes(searchTerm.toLowerCase());
+
+        if (!matchesSearch) return false;
+
+        if (timeRange === "all") return true;
+
+        const date = inv.createdAt.toDate ? inv.createdAt.toDate() : new Date(inv.createdAt);
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+
+        if (timeRange === "today") return date >= now;
+        if (timeRange === "week") {
+            const startOfWeek = new Date(now);
+            startOfWeek.setDate(now.getDate() - now.getDay());
+            return date >= startOfWeek;
+        }
+        if (timeRange === "month") {
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            return date >= startOfMonth;
+        }
+        if (timeRange === "year") {
+            const startOfYear = new Date(now.getFullYear(), 0, 1);
+            return date >= startOfYear;
+        }
+        return true;
+    });
 
     return (
         <div className="space-y-8">
@@ -106,15 +132,28 @@ export default function InvoicesPage() {
                 </Link>
             </div>
 
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
-                <input
-                    type="text"
-                    placeholder="Buscar por cliente..."
-                    className="w-full pl-10 input-premium"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
+            <div className="flex flex-col md:flex-row gap-4">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
+                    <input
+                        type="text"
+                        placeholder="Buscar por cliente..."
+                        className="w-full pl-10 input-premium"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                <select
+                    className="input-premium w-full md:w-48"
+                    value={timeRange}
+                    onChange={(e) => setTimeRange(e.target.value)}
+                >
+                    <option value="all">Todo el historial</option>
+                    <option value="today">Hoy</option>
+                    <option value="week">Esta semana</option>
+                    <option value="month">Este mes</option>
+                    <option value="year">Este año</option>
+                </select>
             </div>
 
             <div className="grid grid-cols-1 gap-4">

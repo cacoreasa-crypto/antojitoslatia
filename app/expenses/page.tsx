@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, getDocs, addDoc, query, orderBy, Timestamp, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, addDoc, query, orderBy, Timestamp, deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "@/lib/firebase";
 import { Expense } from "@/types";
@@ -16,7 +16,8 @@ import {
     Upload,
     Download,
     Settings,
-    Trash2
+    Trash2,
+    Edit2
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -33,6 +34,7 @@ export default function ExpensesPage() {
     const [saving, setSaving] = useState(false);
     const [newCategory, setNewCategory] = useState("");
     const [addingCategory, setAddingCategory] = useState(false);
+    const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
     const [form, setForm] = useState({
         description: "",
@@ -138,14 +140,29 @@ export default function ExpensesPage() {
                 receiptName = file.name;
             }
 
-            await addDoc(collection(db, "expenses"), {
-                ...form,
-                amount: parseFloat(form.amount.toString()),
-                date: Timestamp.fromDate(new Date(form.date)),
-                receiptUrl,
-                receiptName,
-                createdAt: Timestamp.now()
-            });
+            if (editingExpense) {
+                const updates: any = {
+                    ...form,
+                    amount: parseFloat(form.amount.toString()),
+                    date: Timestamp.fromDate(new Date(form.date)),
+                };
+                if (receiptUrl) {
+                    updates.receiptUrl = receiptUrl;
+                    updates.receiptName = receiptName;
+                }
+                await updateDoc(doc(db, "expenses", editingExpense.id), updates);
+            } else {
+                await addDoc(collection(db, "expenses"), {
+                    ...form,
+                    amount: parseFloat(form.amount.toString()),
+                    date: Timestamp.fromDate(new Date(form.date)),
+                    receiptUrl,
+                    receiptName,
+                    createdAt: Timestamp.now()
+                });
+            }
+
+            setEditingExpense(null);
 
             setShowModal(false);
             setForm({ description: "", amount: 0, category: "", date: new Date().toISOString().split('T')[0] });
@@ -159,10 +176,39 @@ export default function ExpensesPage() {
         }
     };
 
-    const filteredExpenses = expenses.filter(e =>
-        e.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        e.category.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const [timeRange, setTimeRange] = useState("all");
+
+    const filteredExpenses = expenses.filter(e => {
+        const matchesSearch = e.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            e.category.toLowerCase().includes(searchTerm.toLowerCase());
+
+        if (!matchesSearch) return false;
+
+        if (timeRange === "all") return true;
+
+        const expenseDate = e.date.toDate ? e.date.toDate() : new Date(e.date);
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+
+        if (timeRange === "today") {
+            return expenseDate >= now;
+        }
+        if (timeRange === "week") {
+            const startOfWeek = new Date(now);
+            startOfWeek.setDate(now.getDate() - now.getDay());
+            return expenseDate >= startOfWeek;
+        }
+        if (timeRange === "month") {
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            return expenseDate >= startOfMonth;
+        }
+        if (timeRange === "year") {
+            const startOfYear = new Date(now.getFullYear(), 0, 1);
+            return expenseDate >= startOfYear;
+        }
+
+        return true;
+    });
 
     // Merge default and custom categories for selection
     const availableCategories = [
@@ -211,7 +257,12 @@ export default function ExpensesPage() {
                     </div>
 
                     <button
-                        onClick={() => setShowModal(true)}
+                        onClick={() => {
+                            setEditingExpense(null);
+                            setForm({ description: "", amount: 0, category: "", date: new Date().toISOString().split('T')[0] });
+                            setFile(null);
+                            setShowModal(true);
+                        }}
                         className="btn-primary flex items-center gap-2"
                     >
                         <Plus size={20} />
@@ -221,15 +272,28 @@ export default function ExpensesPage() {
                 </div>
             </div>
 
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
-                <input
-                    type="text"
-                    placeholder="Buscar gasto por descripción o categoría..."
-                    className="w-full pl-10 input-premium"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
+            <div className="flex flex-col md:flex-row gap-4">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
+                    <input
+                        type="text"
+                        placeholder="Buscar gasto por descripción o categoría..."
+                        className="w-full pl-10 input-premium"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                <select
+                    className="input-premium w-full md:w-48"
+                    value={timeRange}
+                    onChange={(e) => setTimeRange(e.target.value)}
+                >
+                    <option value="all">Todo el historial</option>
+                    <option value="today">Hoy</option>
+                    <option value="week">Esta semana</option>
+                    <option value="month">Este mes</option>
+                    <option value="year">Este año</option>
+                </select>
             </div>
 
             <div className="grid grid-cols-1 gap-4">
@@ -268,16 +332,52 @@ export default function ExpensesPage() {
                                     <p className="font-bold text-xl text-red-500">{formatCurrency(expense.amount)}</p>
                                 </div>
 
-                                {expense.receiptUrl && (
-                                    <a
-                                        href={expense.receiptUrl}
-                                        target="_blank"
-                                        className="p-2 text-muted-foreground hover:text-primary transition-all bg-[var(--muted)] rounded-lg"
-                                        title="Ver Recibo"
+                                <div className="flex items-center gap-2">
+                                    {expense.receiptUrl && (
+                                        <a
+                                            href={expense.receiptUrl}
+                                            target="_blank"
+                                            className="p-2 text-muted-foreground hover:text-primary transition-all bg-[var(--muted)] rounded-lg"
+                                            title="Ver Recibo"
+                                        >
+                                            <ImageIcon size={20} />
+                                        </a>
+                                    )}
+                                    <button
+                                        onClick={() => {
+                                            setEditingExpense(expense);
+                                            setForm({
+                                                description: expense.description,
+                                                amount: expense.amount,
+                                                category: expense.category,
+                                                date: new Date(expense.date.toDate()).toISOString().split('T')[0]
+                                            });
+                                            setFile(null);
+                                            setShowModal(true);
+                                        }}
+                                        className="p-2 text-muted-foreground hover:text-[var(--primary)] transition-all bg-[var(--muted)] rounded-lg"
+                                        title="Editar"
                                     >
-                                        <ImageIcon size={20} />
-                                    </a>
-                                )}
+                                        <Edit2 size={20} />
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            if (confirm("¿Estás seguro de eliminar este gasto?")) {
+                                                try {
+                                                    await deleteDoc(doc(db, "expenses", expense.id));
+                                                    fetchExpenses();
+                                                } catch (error) {
+                                                    console.error("Error deleting expense:", error);
+                                                    alert("Error al eliminar gasto");
+                                                }
+                                            }
+                                        }}
+                                        className="p-2 text-muted-foreground hover:text-red-500 transition-all bg-[var(--muted)] rounded-lg"
+                                        title="Eliminar"
+                                    >
+                                        <Trash2 size={20} />
+                                    </button>
+                                </div>
                             </div>
                         </motion.div>
                     ))
@@ -302,7 +402,7 @@ export default function ExpensesPage() {
                             className="card-premium w-full max-w-lg relative z-10"
                         >
                             <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-2xl font-bold">Registrar Gasto</h2>
+                                <h2 className="text-2xl font-bold">{editingExpense ? "Editar Gasto" : "Registrar Gasto"}</h2>
                                 <button onClick={() => setShowModal(false)} className="text-muted-foreground hover:text-white">
                                     <X />
                                 </button>
@@ -369,7 +469,7 @@ export default function ExpensesPage() {
                                         />
                                         <div className="w-full border-2 border-dashed border-[var(--border)] rounded-xl p-8 flex flex-col items-center justify-center gap-2 group-hover:border-primary/50 transition-all bg-[var(--muted)]/50">
                                             <Upload className="text-muted-foreground group-hover:text-primary transition-all" />
-                                            <p className="text-sm text-muted-foreground">{file ? file.name : "Sube una imagen o PDF del recibo"}</p>
+                                            <p className="text-sm text-muted-foreground">{file ? file.name : (editingExpense?.receiptName || "Sube una imagen o PDF del recibo")}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -380,7 +480,7 @@ export default function ExpensesPage() {
                                     className="w-full btn-primary h-12 flex items-center justify-center gap-2 mt-6"
                                 >
                                     {saving ? <Loader2 className="animate-spin" /> : <Save size={20} />}
-                                    Registrar Gasto
+                                    {editingExpense ? "Guardar Cambios" : "Registrar Gasto"}
                                 </button>
                             </form>
                         </motion.div>
