@@ -144,7 +144,8 @@ export default function SalesPage() {
                 </select>
             </div>
 
-            <div className="card-premium overflow-hidden !p-0">
+            {/* Desktop Table */}
+            <div className="hidden md:block card-premium overflow-hidden !p-0">
                 <table className="w-full text-left">
                     <thead className="bg-[var(--muted)] text-muted-foreground text-sm">
                         <tr>
@@ -186,6 +187,47 @@ export default function SalesPage() {
                         )}
                     </tbody>
                 </table>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className="md:hidden space-y-4">
+                {loading ? (
+                    <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
+                ) : filteredSales.length === 0 ? (
+                    <div className="card-premium text-center py-8 text-muted-foreground">
+                        No se encontraron ventas.
+                    </div>
+                ) : (
+                    filteredSales.map((sale) => (
+                        <div key={sale.id} className="card-premium space-y-3">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <h3 className="font-bold text-lg text-green-500">{formatCurrency(sale.amount)}</h3>
+                                    <p className="text-xs text-muted-foreground">{formatDate(sale.date)}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-xs font-mono bg-[var(--muted)] px-1.5 py-0.5 rounded">{sale.invoiceId.slice(0, 8)}...</p>
+                                </div>
+                            </div>
+
+                            {sale.customerName && (
+                                <div className="text-sm font-medium border-t border-[var(--border)] pt-2">
+                                    <span className="text-muted-foreground font-normal">Cliente:</span> {sale.customerName}
+                                </div>
+                            )}
+
+                            <div className="bg-[var(--muted)]/30 rounded-lg p-2 text-sm space-y-1">
+                                <p className="text-xs text-muted-foreground mb-2 uppercase font-bold">Productos</p>
+                                {sale.items.map((item, idx) => (
+                                    <div key={idx} className="flex justify-between">
+                                        <span>{item.name}</span>
+                                        <span className="font-bold opacity-70">x{item.quantity}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))
+                )}
             </div>
         </div>
     );

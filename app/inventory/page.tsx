@@ -170,9 +170,10 @@ export default function InventoryPage() {
                 />
             </div>
 
-            <div className="card-premium overflow-hidden !p-0">
+            {/* Desktop Table */}
+            <div className="hidden md:block card-premium overflow-hidden !p-0">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left min-w-[600px]"> {/* Ensure min width for table */}
+                    <table className="w-full text-left min-w-[600px]">
                         <thead className="bg-[var(--muted)] text-muted-foreground text-sm">
                             <tr>
                                 <th className="px-6 py-4 font-medium">Nombre</th>
@@ -236,6 +237,67 @@ export default function InventoryPage() {
                         </tbody>
                     </table>
                 </div>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className="md:hidden space-y-4">
+                {loading ? (
+                    <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
+                ) : products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
+                    <div className="card-premium text-center py-8 text-muted-foreground">
+                        No se encontraron productos.
+                    </div>
+                ) : (
+                    products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())).map((product) => (
+                        <div key={product.id} className="card-premium space-y-3">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <h3 className="font-bold text-lg">{product.name}</h3>
+                                    <p className="text-muted-foreground text-sm">{formatCurrency(product.price)} / unidad</p>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => startEdit(product)}
+                                        className="p-2 bg-[var(--muted)] rounded-lg text-muted-foreground hover:text-primary transition-colors"
+                                    >
+                                        <Edit2 size={18} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(product.id)}
+                                        className="p-2 bg-[var(--muted)] rounded-lg text-muted-foreground hover:text-red-500 transition-colors"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-between p-3 bg-[var(--muted)]/50 rounded-lg">
+                                <span className="text-sm font-medium">Stock Disponible</span>
+                                <span className={`flex items-center gap-2 font-bold ${product.stock <= product.minStock ? 'text-red-500' : ''}`}>
+                                    {product.stock} u
+                                    {product.stock <= product.minStock && <AlertCircle size={14} />}
+                                </span>
+                            </div>
+
+                            {product.packaging && (
+                                <div className="grid grid-cols-3 gap-2 text-xs text-center">
+                                    <div className="bg-[var(--muted)]/30 p-2 rounded">
+                                        <p className="text-muted-foreground">Bolsa</p>
+                                        <p className="font-medium">{product.packaging.unitsPerBag}u</p>
+                                    </div>
+                                    <div className="bg-[var(--muted)]/30 p-2 rounded">
+                                        <p className="text-muted-foreground">Caja</p>
+                                        <p className="font-medium">{product.packaging.bagsPerBox}b</p>
+                                    </div>
+                                    <div className="bg-[var(--muted)]/30 p-2 rounded">
+                                        <p className="text-muted-foreground">Pallet</p>
+                                        <p className="font-medium">{product.packaging.boxesPerPallet}c</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ))
+                )}
             </div>
 
             {/* Modal Multi-purpose */}
