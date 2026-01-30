@@ -184,26 +184,39 @@ export default function ExpensesPage() {
                     <p className="text-muted-foreground">Registra egresos y facturas de compra.</p>
                 </div>
                 <div className="flex gap-2">
-                    <button
-                        onClick={exportToExcel}
-                        className="btn-accent flex items-center gap-2"
-                    >
-                        <Download size={20} />
-                        Exportar
-                    </button>
-                    <button
-                        onClick={() => setShowCategoryModal(true)}
-                        className="btn-secondary flex items-center gap-2"
-                    >
-                        <Settings size={20} />
-                        Categorías
-                    </button>
+                    {/* Desktop Actions */}
+                    <div className="hidden md:flex gap-2">
+                        <button
+                            onClick={exportToExcel}
+                            className="btn-accent flex items-center gap-2"
+                        >
+                            <Download size={20} />
+                            Exportar
+                        </button>
+                        <button
+                            onClick={() => setShowCategoryModal(true)}
+                            className="btn-secondary flex items-center gap-2"
+                        >
+                            <Settings size={20} />
+                            Categorías
+                        </button>
+                    </div>
+
+                    {/* Mobile Actions Dropdown */}
+                    <div className="md:hidden relative">
+                        <TopMenu
+                            onExport={exportToExcel}
+                            onCategories={() => setShowCategoryModal(true)}
+                        />
+                    </div>
+
                     <button
                         onClick={() => setShowModal(true)}
                         className="btn-primary flex items-center gap-2"
                     >
                         <Plus size={20} />
-                        Registrar Gasto
+                        <span className="hidden md:inline">Registrar Gasto</span>
+                        <span className="md:hidden">Nuevo</span>
                     </button>
                 </div>
             </div>
@@ -449,6 +462,49 @@ export default function ExpensesPage() {
                             </div>
                         </motion.div>
                     </div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}
+
+function TopMenu({ onExport, onCategories }: { onExport: () => void, onCategories: () => void }) {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <div className="relative">
+            <button
+                onClick={() => setOpen(!open)}
+                className="p-2 border border-[var(--border)] rounded-lg bg-[var(--card)] text-muted-foreground"
+            >
+                <Settings size={20} />
+            </button>
+            <AnimatePresence>
+                {open && (
+                    <>
+                        <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                            className="absolute right-0 top-12 min-w-[160px] bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-xl z-20 flex flex-col p-1"
+                        >
+                            <button
+                                onClick={() => { onExport(); setOpen(false); }}
+                                className="flex items-center gap-2 px-4 py-3 hover:bg-[var(--muted)] rounded-lg text-sm text-left"
+                            >
+                                <Download size={16} />
+                                Exportar Excel
+                            </button>
+                            <button
+                                onClick={() => { onCategories(); setOpen(false); }}
+                                className="flex items-center gap-2 px-4 py-3 hover:bg-[var(--muted)] rounded-lg text-sm text-left"
+                            >
+                                <Settings size={16} />
+                                Categorías
+                            </button>
+                        </motion.div>
+                    </>
                 )}
             </AnimatePresence>
         </div>

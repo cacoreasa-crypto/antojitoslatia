@@ -202,7 +202,7 @@ export default function NewInvoicePage() {
     );
 
     return (
-        <div className="space-y-8 max-w-5xl mx-auto pb-20">
+        <div className="space-y-8 max-w-5xl mx-auto pb-32 md:pb-20">
             <div className="flex items-center gap-4">
                 <Link href="/invoices" className="p-2 hover:bg-[var(--muted)] rounded-lg transition-all">
                     <ArrowLeft size={24} />
@@ -405,6 +405,21 @@ export default function NewInvoicePage() {
                         {saving ? <Loader2 className="animate-spin" /> : <><Save size={24} /> Guardar Factura</>}
                     </button>
                 </div>
+            </div>
+
+            {/* Mobile Sticky Footer */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[var(--card)] border-t border-[var(--border)] p-4 flex items-center justify-between gap-4 z-40 shadow-[0_-4px_10px_rgba(0,0,0,0.1)]">
+                <div>
+                    <p className="text-xs text-muted-foreground">Total Estimado</p>
+                    <p className="text-xl font-black text-primary">{formatCurrency(selectedItems.reduce((acc, item) => acc + item.total, 0))}</p>
+                </div>
+                <button
+                    onClick={handleSave}
+                    disabled={saving || !selectedClient || selectedItems.length === 0}
+                    className="btn-primary px-6 py-3 font-bold rounded-lg disabled:opacity-50 flex items-center gap-2"
+                >
+                    {saving ? <Loader2 className="animate-spin" /> : "Guardar"}
+                </button>
             </div>
 
             {/* Create Client Modal */}

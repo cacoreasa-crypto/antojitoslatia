@@ -100,9 +100,9 @@ export default function InvoicesPage() {
                     <h1 className="text-3xl font-bold">Facturas</h1>
                     <p className="text-muted-foreground">Genera y rastrea tus facturaciones.</p>
                 </div>
-                <Link href="/invoices/new" className="btn-primary flex items-center gap-2">
+                <Link href="/invoices/new" className="btn-primary flex items-center gap-2 px-3 md:px-4">
                     <Plus size={20} />
-                    Nueva Factura
+                    <span className="hidden md:inline">Nueva Factura</span>
                 </Link>
             </div>
 

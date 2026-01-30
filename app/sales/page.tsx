@@ -69,7 +69,7 @@ export default function SalesPage() {
                     className="btn-accent flex items-center gap-2"
                 >
                     <Download size={20} />
-                    Exportar Excel
+                    <span className="hidden md:inline">Exportar Excel</span>
                 </button>
             </div>
 

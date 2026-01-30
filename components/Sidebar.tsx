@@ -37,24 +37,29 @@ export default function Sidebar() {
 
     return (
         <>
-            {/* Mobile Toggle */}
-            <button
-                onClick={toggleMobile}
-                className="md:hidden fixed top-4 right-4 z-50 p-2 bg-[var(--card)] border border-[var(--border)] rounded-full shadow-lg"
-            >
-                <Menu size={24} />
-            </button>
+            {/* Mobile Header */}
+            <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[var(--card)]/80 backdrop-blur-md border-b border-[var(--border)] z-50 flex items-center justify-between px-4">
+                <div className="relative w-10 h-10">
+                    <Image src="/logo.png" alt="Logo" fill className="object-contain" />
+                </div>
+                <button
+                    onClick={toggleMobile}
+                    className="p-2 hover:bg-[var(--muted)] rounded-full transition-colors"
+                >
+                    <Menu size={24} />
+                </button>
+            </header>
 
             {/* Overlay for mobile */}
             {mobileOpen && (
                 <div
                     onClick={() => setMobileOpen(false)}
-                    className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm"
+                    className="fixed inset-0 bg-black/60 z-50 md:hidden backdrop-blur-sm"
                 />
             )}
 
             <aside className={cn(
-                "h-screen content-start bg-[var(--card)] border-r border-[var(--border)] transition-all duration-300 flex flex-col z-50",
+                "h-screen content-start bg-[var(--card)] border-r border-[var(--border)] transition-all duration-300 flex flex-col z-[60]",
                 "fixed md:sticky top-0 left-0",
                 mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
                 collapsed ? "w-64 md:w-20" : "w-64"

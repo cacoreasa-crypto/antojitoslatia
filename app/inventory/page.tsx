@@ -141,7 +141,7 @@ export default function InventoryPage() {
 
     return (
         <div className="space-y-8 pb-20 md:pb-0"> {/* Add padding bottom for mobile if needed */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="flex justify-between items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-bold">Inventario</h1>
                     <p className="text-muted-foreground">Gestiona tus productos y existencias.</p>
@@ -152,10 +152,10 @@ export default function InventoryPage() {
                         resetForm();
                         setShowModal(true);
                     }}
-                    className="btn-primary w-full md:w-auto flex items-center justify-center gap-2"
+                    className="btn-primary flex items-center justify-center gap-2 px-3 md:px-4"
                 >
                     <Plus size={20} />
-                    Nuevo Producto
+                    <span className="hidden md:inline">Nuevo Producto</span>
                 </button>
             </div>
 
