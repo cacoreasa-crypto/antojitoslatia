@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Sale } from "@/types";
 import {
@@ -21,22 +21,19 @@ export default function SalesPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
 
-    const fetchSales = async () => {
-        setLoading(true);
-        try {
-            const q = query(collection(db, "sales"), orderBy("date", "desc"));
-            const querySnapshot = await getDocs(q);
-            const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sale));
-            setSales(data);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     useEffect(() => {
-        fetchSales();
+        setLoading(true);
+        const q = query(collection(db, "sales"), orderBy("date", "desc"));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sale));
+            setSales(data);
+            setLoading(false);
+        }, (error: Error) => {
+            console.error("Error fetching sales:", error);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
     }, []);
 
     const exportToExcel = () => {

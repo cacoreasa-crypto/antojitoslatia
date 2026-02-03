@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, query, where, getDocs, Timestamp } from "firebase/firestore";
+import { collection, query, where, getDocs, Timestamp, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
   TrendingUp,
@@ -27,53 +27,57 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchStats() {
-      try {
-        const now = new Date();
-        const start = startOfMonth(now);
-        const end = endOfMonth(now);
+    const now = new Date();
+    const start = startOfMonth(now);
+    const end = endOfMonth(now);
 
-        // Fetch Sales
-        const salesQ = query(
-          collection(db, "sales"),
-          where("date", ">=", Timestamp.fromDate(start)),
-          where("date", "<=", Timestamp.fromDate(end))
-        );
-        const salesSnap = await getDocs(salesQ);
-        const monthlySales = salesSnap.docs.reduce((acc, doc) => acc + (doc.data().amount || 0), 0);
+    // 1. Monthly Sales Listener
+    const salesQ = query(
+      collection(db, "sales"),
+      where("date", ">=", Timestamp.fromDate(start)),
+      where("date", "<=", Timestamp.fromDate(end))
+    );
+    const unsubSales = onSnapshot(salesQ, (snapshot) => {
+      const monthlySales = snapshot.docs.reduce((acc, doc) => acc + (doc.data().amount || 0), 0);
+      setStats(prev => ({ ...prev, monthlySales }));
+      setLoading(false);
+    });
 
-        // Fetch Expenses
-        const expensesQ = query(
-          collection(db, "expenses"),
-          where("date", ">=", Timestamp.fromDate(start)),
-          where("date", "<=", Timestamp.fromDate(end))
-        );
-        const expensesSnap = await getDocs(expensesQ);
-        const monthlyExpenses = expensesSnap.docs.reduce((acc, doc) => acc + (doc.data().amount || 0), 0);
+    // 2. Monthly Expenses Listener
+    const expensesQ = query(
+      collection(db, "expenses"),
+      where("date", ">=", Timestamp.fromDate(start)),
+      where("date", "<=", Timestamp.fromDate(end))
+    );
+    const unsubExpenses = onSnapshot(expensesQ, (snapshot) => {
+      const monthlyExpenses = snapshot.docs.reduce((acc, doc) => acc + (doc.data().amount || 0), 0);
+      setStats(prev => ({ ...prev, monthlyExpenses }));
+      setLoading(false);
+    });
 
-        // Fetch Low Stock
-        const productsSnap = await getDocs(collection(db, "products"));
-        const allProducts = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-        const lowStockItems = allProducts.filter(p => p.stock <= p.minStock);
+    // 3. Low Stock Listener
+    const productsQ = collection(db, "products");
+    const unsubProducts = onSnapshot(productsQ, (snapshot) => {
+      const allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+      const lowStockItems = allProducts.filter(p => p.stock <= p.minStock);
+      setStats(prev => ({ ...prev, lowStockItems }));
+      setLoading(false);
+    });
 
-        // Recent Invoices
-        const invoicesQ = query(collection(db, "invoices"), where("status", "==", "pending"));
-        const invoicesSnap = await getDocs(invoicesQ);
-        const recentInvoices = invoicesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Invoice)).slice(0, 5);
+    // 4. Recent Invoices Listener
+    const invoicesQ = query(collection(db, "invoices"), where("status", "==", "pending"));
+    const unsubInvoices = onSnapshot(invoicesQ, (snapshot) => {
+      const recentInvoices = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Invoice)).slice(0, 5);
+      setStats(prev => ({ ...prev, recentInvoices }));
+      setLoading(false);
+    });
 
-        setStats({
-          monthlySales,
-          monthlyExpenses,
-          lowStockItems,
-          recentInvoices,
-        });
-      } catch (err) {
-        console.error("Error fetching stats:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchStats();
+    return () => {
+      unsubSales();
+      unsubExpenses();
+      unsubProducts();
+      unsubInvoices();
+    };
   }, []);
 
   const cards = [

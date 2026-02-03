@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, getDocs, query, orderBy, updateDoc, doc, addDoc, getDoc, Timestamp } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, updateDoc, doc, addDoc, getDoc, Timestamp, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Invoice, Product } from "@/types";
 import {
@@ -31,22 +31,18 @@ export default function InvoicesPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
 
-    const fetchInvoices = async () => {
-        setLoading(true);
-        try {
-            const q = query(collection(db, "invoices"), orderBy("createdAt", "desc"));
-            const querySnapshot = await getDocs(q);
-            const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Invoice));
-            setInvoices(data);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     useEffect(() => {
-        fetchInvoices();
+        setLoading(true);
+        const q = query(collection(db, "invoices"), orderBy("createdAt", "desc"));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Invoice));
+            setInvoices(data);
+            setLoading(false);
+        }, (error: Error) => {
+            console.error("Error fetching invoices:", error);
+            setLoading(false);
+        });
+        return () => unsubscribe();
     }, []);
 
     const handleStatusChange = async (invoice: Invoice, newStatus: "paid" | "delivered") => {
@@ -82,7 +78,7 @@ export default function InvoicesPage() {
             }
 
             await updateDoc(doc(db, "invoices", invoice.id), updates);
-            fetchInvoices();
+            // fetchInvoices(); // Handled by onSnapshot
         } catch (err) {
             console.error(err);
             alert("Error al actualizar el estado.");

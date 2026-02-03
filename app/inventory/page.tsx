@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Product } from "@/types";
 import {
@@ -35,22 +35,18 @@ export default function InventoryPage() {
     });
 
     useEffect(() => {
-        fetchProducts();
-    }, []);
-
-    const fetchProducts = async () => {
         setLoading(true);
-        try {
-            const q = query(collection(db, "products"), orderBy("name"));
-            const querySnapshot = await getDocs(q);
-            const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+        const q = query(collection(db, "products"), orderBy("name"));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
             setProducts(data);
-        } catch (err) {
-            console.error(err);
-        } finally {
             setLoading(false);
-        }
-    };
+        }, (error: Error) => {
+            console.error("Error fetching products:", error);
+            setLoading(false);
+        });
+        return () => unsubscribe();
+    }, []);
 
     const calculateTotalUnits = (qty: number, type: string) => {
         if (type === 'bag') return qty * form.unitsPerBag;
@@ -95,7 +91,7 @@ export default function InventoryPage() {
             setShowModal(false);
             setEditingProduct(null);
             resetForm();
-            fetchProducts();
+            // fetchProducts(); // Handled by onSnapshot
         } catch (err) {
             console.error(err);
         }
@@ -132,7 +128,7 @@ export default function InventoryPage() {
     const handleDelete = async (id: string) => {
         if (confirm("¿Estás seguro de eliminar este producto?")) {
             await deleteDoc(doc(db, "products", id));
-            fetchProducts();
+            // fetchProducts(); // Handled by onSnapshot
         }
     };
 
