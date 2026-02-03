@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { DateRangePicker, DateRange } from "@/components/DateRangePicker";
 
 import * as XLSX from 'xlsx';
 
@@ -176,7 +177,11 @@ export default function ExpensesPage() {
         }
     };
 
-    const [timeRange, setTimeRange] = useState("all");
+    const [dateRange, setDateRange] = useState<DateRange>({
+        start: null,
+        end: null,
+        label: "Todo"
+    });
 
     const filteredExpenses = expenses.filter(e => {
         const matchesSearch = e.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -184,30 +189,17 @@ export default function ExpensesPage() {
 
         if (!matchesSearch) return false;
 
-        if (timeRange === "all") return true;
+        if (!dateRange.start || !dateRange.end) return true;
 
         const expenseDate = e.date.toDate ? e.date.toDate() : new Date(e.date);
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
 
-        if (timeRange === "today") {
-            return expenseDate >= now;
-        }
-        if (timeRange === "week") {
-            const startOfWeek = new Date(now);
-            startOfWeek.setDate(now.getDate() - now.getDay());
-            return expenseDate >= startOfWeek;
-        }
-        if (timeRange === "month") {
-            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            return expenseDate >= startOfMonth;
-        }
-        if (timeRange === "year") {
-            const startOfYear = new Date(now.getFullYear(), 0, 1);
-            return expenseDate >= startOfYear;
-        }
+        const start = new Date(dateRange.start);
+        start.setHours(0, 0, 0, 0);
 
-        return true;
+        const end = new Date(dateRange.end);
+        end.setHours(23, 59, 59, 999);
+
+        return expenseDate >= start && expenseDate <= end;
     });
 
     // Merge default and custom categories for selection
@@ -272,8 +264,8 @@ export default function ExpensesPage() {
                 </div>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-4">
-                <div className="relative flex-1">
+            <div className="flex flex-col md:flex-row gap-4 items-center">
+                <div className="relative flex-1 w-full">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
                     <input
                         type="text"
@@ -283,17 +275,9 @@ export default function ExpensesPage() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <select
-                    className="input-premium w-full md:w-48"
-                    value={timeRange}
-                    onChange={(e) => setTimeRange(e.target.value)}
-                >
-                    <option value="all">Todo el historial</option>
-                    <option value="today">Hoy</option>
-                    <option value="week">Esta semana</option>
-                    <option value="month">Este mes</option>
-                    <option value="year">Este año</option>
-                </select>
+                <div className="w-full md:w-auto">
+                    <DateRangePicker value={dateRange} onChange={setDateRange} />
+                </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4">
