@@ -14,7 +14,9 @@ import {
     User,
     MapPin,
     Phone,
-    X
+    X,
+    Calendar,
+    CheckCircle2
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -26,6 +28,10 @@ export default function NewInvoicePage() {
     const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+
+    // Invoice Meta State
+    const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
+    const [isPaid, setIsPaid] = useState(false);
 
     // Client State
     const [clientSearch, setClientSearch] = useState("");
@@ -152,16 +158,37 @@ export default function NewInvoicePage() {
 
         setSaving(true);
         try {
-            await addDoc(collection(db, "invoices"), {
+            const timestamp = Timestamp.fromDate(new Date(invoiceDate));
+            const total = selectedItems.reduce((acc, item) => acc + item.total, 0);
+
+            // Create Invoice
+            const invoiceData: any = {
                 customerId: selectedClient.id,
                 customerName: selectedClient.name,
                 customerPhone: selectedClient.phone,
                 customerAddress: selectedClient.address,
                 items: selectedItems,
-                total: selectedItems.reduce((acc, item) => acc + item.total, 0),
-                status: "pending",
-                createdAt: Timestamp.now(),
-            });
+                total: total,
+                status: isPaid ? "paid" : "pending",
+                createdAt: timestamp,
+            };
+
+            if (isPaid) {
+                invoiceData.paidAt = timestamp;
+            }
+
+            const invoiceRef = await addDoc(collection(db, "invoices"), invoiceData);
+
+            // Create Sale if Paid
+            if (isPaid) {
+                await addDoc(collection(db, "sales"), {
+                    invoiceId: invoiceRef.id,
+                    customerName: selectedClient.name,
+                    amount: total,
+                    date: timestamp,
+                    items: selectedItems
+                });
+            }
             router.push("/invoices");
         } catch (err) {
             console.error(err);
@@ -215,6 +242,48 @@ export default function NewInvoicePage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-6">
+                    {/* Date and Status Card */}
+                    <div className="card-premium space-y-4">
+                        <h3 className="font-bold border-b border-[var(--border)] pb-2">Detalles Generales</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                                    <Calendar size={16} /> Fecha de Emisión
+                                </label>
+                                <input
+                                    type="date"
+                                    className="w-full input-premium h-12"
+                                    value={invoiceDate}
+                                    onChange={(e) => setInvoiceDate(e.target.value)}
+                                    required
+                                />
+                                <p className="text-[10px] text-muted-foreground">
+                                    Útil para registrar ventas pasadas.
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                                    <CheckCircle2 size={16} /> Estado Inicial
+                                </label>
+                                <div
+                                    onClick={() => setIsPaid(!isPaid)}
+                                    className={`w-full input-premium h-12 flex items-center justify-between cursor-pointer transition-all ${isPaid ? 'bg-green-500/10 border-green-500' : ''}`}
+                                >
+                                    <span className={isPaid ? 'text-green-600 font-bold' : 'text-muted-foreground'}>
+                                        {isPaid ? "Marcada como PAGADA" : "Pendiente de Pago"}
+                                    </span>
+                                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${isPaid ? 'bg-green-500 border-green-500' : 'border-gray-400'}`}>
+                                        {isPaid && <CheckCircle2 size={12} className="text-white" />}
+                                    </div>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground">
+                                    Si marcas como pagada, se registrará la venta automáticamente.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Client Selection Card */}
                     <div className="card-premium space-y-4">
                         <h3 className="font-bold border-b border-[var(--border)] pb-2 flex justify-between items-center">
