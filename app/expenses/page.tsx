@@ -17,10 +17,11 @@ import {
     Download,
     Settings,
     Trash2,
-    Edit2
+    Trash2,
+    Edit2,
+    Filter
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
 import { motion, AnimatePresence } from "framer-motion";
 // import { DateRangePicker, DateRange } from "@/components/DateRangePicker"; // Removed for simpler dropdowns
 
