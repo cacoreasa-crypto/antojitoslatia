@@ -21,7 +21,8 @@ import {
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { DateRangePicker, DateRange } from "@/components/DateRangePicker";
+import { motion, AnimatePresence } from "framer-motion";
+// import { DateRangePicker, DateRange } from "@/components/DateRangePicker"; // Removed for simpler dropdowns
 
 import * as XLSX from 'xlsx';
 
@@ -177,29 +178,32 @@ export default function ExpensesPage() {
         }
     };
 
-    const [dateRange, setDateRange] = useState<DateRange>({
-        start: null,
-        end: null,
-        label: "Todo"
-    });
+    // Enhanced Filter Logic
+    const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+    const [selectedMonth, setSelectedMonth] = useState<string>((new Date().getMonth()).toString()); // 0-11
+    const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
     const filteredExpenses = expenses.filter(e => {
-        const matchesSearch = e.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            e.category.toLowerCase().includes(searchTerm.toLowerCase());
-
+        // 1. Text Search
+        const matchesSearch = e.description.toLowerCase().includes(searchTerm.toLowerCase());
         if (!matchesSearch) return false;
-
-        if (!dateRange.start || !dateRange.end) return true;
 
         const expenseDate = e.date.toDate ? e.date.toDate() : new Date(e.date);
 
-        const start = new Date(dateRange.start);
-        start.setHours(0, 0, 0, 0);
+        // 2. Year Filter
+        if (expenseDate.getFullYear() !== selectedYear) return false;
 
-        const end = new Date(dateRange.end);
-        end.setHours(23, 59, 59, 999);
+        // 3. Month Filter (if not 'all')
+        if (selectedMonth !== "all") {
+            if (expenseDate.getMonth() !== parseInt(selectedMonth)) return false;
+        }
 
-        return expenseDate >= start && expenseDate <= end;
+        // 4. Category Filter (if not 'all')
+        if (selectedCategory !== "all") {
+            if (e.category !== selectedCategory) return false;
+        }
+
+        return true;
     });
 
     // Merge default and custom categories for selection
@@ -264,19 +268,71 @@ export default function ExpensesPage() {
                 </div>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-4 items-center">
-                <div className="relative flex-1 w-full">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
-                    <input
-                        type="text"
-                        placeholder="Buscar gasto por descripción o categoría..."
-                        className="w-full pl-10 input-premium"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+            <div className="flex flex-col gap-4">
+                <div className="flex flex-col md:flex-row gap-4 items-center">
+                    <div className="relative flex-1 w-full">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
+                        <input
+                            type="text"
+                            placeholder="Buscar gasto..."
+                            className="w-full pl-10 input-premium"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
                 </div>
-                <div className="w-full md:w-auto">
-                    <DateRangePicker value={dateRange} onChange={setDateRange} />
+
+                {/* Advanced Filter Bar */}
+                <div className="flex flex-wrap gap-2 items-center bg-[var(--muted)]/50 p-2 rounded-xl border border-[var(--border)]">
+                    <span className="text-xs font-bold text-muted-foreground uppercase px-2"><Filter size={14} className="inline mr-1" /> Filtros:</span>
+
+                    {/* Year Selector */}
+                    <select
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                        className="bg-[var(--card)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                        {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (
+                            <option key={year} value={year}>{year}</option>
+                        ))}
+                    </select>
+
+                    {/* Month Selector */}
+                    <select
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(e.target.value)}
+                        className="bg-[var(--card)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                        <option value="all">Todo el Año</option>
+                        {["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"].map((month, idx) => (
+                            <option key={idx} value={idx}>{month}</option>
+                        ))}
+                    </select>
+
+                    {/* Category Selector */}
+                    <select
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        className="bg-[var(--card)] border border-[var(--border)] rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary/20 max-w-[200px]"
+                    >
+                        <option value="all">Todas las Categorías</option>
+                        {availableCategories.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                    </select>
+
+                    {(selectedCategory !== "all" || selectedMonth !== "all" || selectedYear !== new Date().getFullYear()) && (
+                        <button
+                            onClick={() => {
+                                setSelectedYear(new Date().getFullYear());
+                                setSelectedMonth("all"); // Reset to whole year for easier view
+                                setSelectedCategory("all");
+                            }}
+                            className="ml-auto text-xs text-red-500 hover:text-red-600 font-medium px-2"
+                        >
+                            Limpiar
+                        </button>
+                    )}
                 </div>
             </div>
 
