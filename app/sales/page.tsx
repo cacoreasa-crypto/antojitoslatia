@@ -10,12 +10,14 @@ import {
     Download,
     Loader2,
     Calendar,
-    DollarSign
+    DollarSign,
+    FileText
 } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { motion } from "framer-motion";
 import * as XLSX from 'xlsx';
 import { DateRangePicker, DateRange } from "@/components/DateRangePicker";
+import { generateSalesPDF } from "@/lib/pdfGenerator";
 
 export default function SalesPage() {
     const [sales, setSales] = useState<Sale[]>([]);
@@ -74,7 +76,7 @@ export default function SalesPage() {
         return date >= start && date <= end;
     });
 
-    const totalSales = sales.reduce((acc, s) => acc + s.amount, 0);
+    const totalSales = filteredSales.reduce((acc, s) => acc + s.amount, 0);
 
     return (
         <div className="space-y-8">
@@ -90,12 +92,19 @@ export default function SalesPage() {
                     <Download size={20} />
                     <span className="hidden md:inline">Exportar Excel</span>
                 </button>
+                <button
+                    onClick={() => generateSalesPDF(filteredSales, { dateRange, search: searchTerm })}
+                    className="btn-accent flex items-center gap-2 ml-2"
+                >
+                    <FileText size={20} />
+                    <span className="hidden md:inline">Descargar PDF</span>
+                </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="card-premium">
                     <p className="text-sm text-muted-foreground flex items-center gap-2">
-                        <TrendingUp size={16} /> Total Histórico
+                        <TrendingUp size={16} /> {dateRange.start && dateRange.end ? "Total Periodo" : "Total Histórico"}
                     </p>
                     <h3 className="text-3xl font-black text-green-500">{formatCurrency(totalSales)}</h3>
                 </div>

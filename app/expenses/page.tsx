@@ -25,6 +25,7 @@ import { motion, AnimatePresence } from "framer-motion";
 // import { DateRangePicker, DateRange } from "@/components/DateRangePicker"; // Removed for simpler dropdowns
 
 import * as XLSX from 'xlsx';
+import { generateExpensesPDF } from "@/lib/pdfGenerator";
 
 export default function ExpensesPage() {
     const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -206,6 +207,8 @@ export default function ExpensesPage() {
         return true;
     });
 
+    const filteredTotal = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+
     // Merge default and custom categories for selection
     const availableCategories = [
         ...DEFAULT_CATEGORIES,
@@ -233,7 +236,19 @@ export default function ExpensesPage() {
                             className="btn-accent flex items-center gap-2"
                         >
                             <Download size={20} />
-                            Exportar
+                            Exportar Excel
+                        </button>
+                        <button
+                            onClick={() => generateExpensesPDF(filteredExpenses, {
+                                year: selectedYear,
+                                month: selectedMonth,
+                                category: selectedCategory,
+                                search: searchTerm
+                            })}
+                            className="btn-accent flex items-center gap-2"
+                        >
+                            <FileText size={20} />
+                            PDF
                         </button>
                         <button
                             onClick={() => setShowCategoryModal(true)}
@@ -249,6 +264,12 @@ export default function ExpensesPage() {
                         <TopMenu
                             onExport={exportToExcel}
                             onCategories={() => setShowCategoryModal(true)}
+                            onPdf={() => generateExpensesPDF(filteredExpenses, {
+                                year: selectedYear,
+                                month: selectedMonth, // pass raw value, generator handles generic
+                                category: selectedCategory,
+                                search: searchTerm
+                            })}
                         />
                     </div>
 
@@ -333,6 +354,14 @@ export default function ExpensesPage() {
                             Limpiar
                         </button>
                     )}
+                </div>
+            </div>
+
+            {/* Total Display */}
+            <div className="flex justify-end">
+                <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl px-6 py-3 shadow-sm flex items-center gap-4">
+                    <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Total Filtrado:</span>
+                    <span className="text-2xl font-black text-red-500">{formatCurrency(filteredTotal)}</span>
                 </div>
             </div>
 
@@ -608,7 +637,7 @@ export default function ExpensesPage() {
     );
 }
 
-function TopMenu({ onExport, onCategories }: { onExport: () => void, onCategories: () => void }) {
+function TopMenu({ onExport, onCategories, onPdf }: { onExport: () => void, onCategories: () => void, onPdf: () => void }) {
     const [open, setOpen] = useState(false);
 
     return (
@@ -635,6 +664,13 @@ function TopMenu({ onExport, onCategories }: { onExport: () => void, onCategorie
                             >
                                 <Download size={16} />
                                 Exportar Excel
+                            </button>
+                            <button
+                                onClick={() => { onPdf(); setOpen(false); }}
+                                className="flex items-center gap-2 px-4 py-3 hover:bg-[var(--muted)] rounded-lg text-sm text-left"
+                            >
+                                <FileText size={16} />
+                                Descargar PDF
                             </button>
                             <button
                                 onClick={() => { onCategories(); setOpen(false); }}
